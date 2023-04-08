@@ -1,12 +1,12 @@
-// code from https://developers.liveperson.com/connect-to-messaging-api.html#details-on-authorization
-
 package com.example;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
+
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -29,10 +29,12 @@ public class OAuthAuthenticator {
         // load the properties file:
         props.load(reader);
 
-        String domain = "https://va.msghist.liveperson.net/messaging_history";
+        String domain = "va.msghist.liveperson.net/messaging_history";
         // Insert the path without the query string:
         // "/api/account/:accountId/eligibility"
-        String path = "/api/account/" + props.getProperty("siteId") + "/conversations/search?";
+        String path = "/api/account/" + props.getProperty("siteId") +
+                "/conversations/search";
+
         String appKey = props.getProperty("apiKey");
         String secret = props.getProperty("apiSecret");
         String accessToken = props.getProperty("token");
@@ -42,8 +44,27 @@ public class OAuthAuthenticator {
         OAuthAuthenticator generator = new OAuthAuthenticator(domain, path, appKey, secret, accessToken,
                 accessTokenSecret);
         String result = generator.generateOauthHeader("POST", parameterList);
-        System.out.println("result");
         System.out.println(result);
+
+        // note, this uses unitrest library, you can sub it for whatever you have
+        try {
+            sendRequest(result);
+        } catch (UnirestException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
+    private static void sendRequest(String header) throws UnirestException {
+        Unirest.setTimeouts(0, 0);
+        com.mashape.unirest.http.HttpResponse<String> response = Unirest.post(
+                "https://va.msghist.liveperson.net/messaging_history/api/account/28079266/conversations/search?offset=0&limit=50")
+                .header("Content-Type", "application/json")
+                .header("Authorization", header)
+                .body("{\"start\":{\"from\":1667325500000,\"to\":1667325607365}}")
+                .asString();
+
+        System.out.println(response.getBody());
     }
 
     public OAuthAuthenticator(String domain,
