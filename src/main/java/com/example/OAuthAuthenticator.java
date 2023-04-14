@@ -6,9 +6,16 @@ import javax.crypto.spec.SecretKeySpec;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.util.*;
 
@@ -48,11 +55,41 @@ public class OAuthAuthenticator {
 
         // note, this uses unitrest library, you can sub it for whatever you have
         try {
-            sendRequest(result);
-        } catch (UnirestException e) {
+            // sendRequest(result);
+            sendJavaRequest(result);
+
+        } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+    }
+
+    private static void sendJavaRequest(String header) throws IOException {
+        URL url = new URL(
+                "https://va.msghist.liveperson.net/messaging_history/api/account/28079266/conversations/search?offset=0&limit=50");
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        con.setRequestMethod("POST");
+        con.setDoOutput(true);
+
+        con.setRequestProperty("Content-Type", "application/json");
+        con.setRequestProperty("Authorization", header);
+
+        String jsonInputString = "{\"start\":{\"from\":1667325500000,\"to\":1667325607365}}";
+        try (OutputStream os = con.getOutputStream()) {
+            byte[] input = jsonInputString.getBytes("utf-8");
+            os.write(input, 0, input.length);
+        }
+
+        try (BufferedReader br = new BufferedReader(
+                new InputStreamReader(con.getInputStream(), "utf-8"))) {
+            StringBuilder response = new StringBuilder();
+            String responseLine = null;
+            while ((responseLine = br.readLine()) != null) {
+                response.append(responseLine.trim());
+            }
+            System.out.println(response.toString());
+        }
+
     }
 
     private static void sendRequest(String header) throws UnirestException {
